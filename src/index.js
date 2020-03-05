@@ -22,7 +22,6 @@ function Square(props){
         }
         return(
             <div>
-                <div className="status">{props.status}</div>
                 <div className="board-row">
                 {renderSquare(0,0)}
                 {renderSquare(0,1)}
@@ -52,7 +51,7 @@ function Square(props){
             [null,null,null],
             [null,null,null]
         ];
-        var history = [{grid}];
+        var history = new Array();
         this.state = {
             grid: grid,
             history: history, 
@@ -64,35 +63,35 @@ function Square(props){
     }
 
     squareClick(r,c){
-        if(this.state.gameOver == false && this.state.grid[r][c] == null){
-            //Deep copy of tempGrid (we will use this later for undo-redo)
-            let tempGrid = this.state.grid.slice();
-            tempGrid[r][c] = this.state.turnX ? 'X' : 'O';
+        if(this.state.gameOver === false && this.state.grid[r][c] === null){
+            const turnMark = this.state.turnX ? 'X' : 'O';
+            this.state.grid[r][c] = turnMark;
+            this.state.history.push(this.recordMove(turnMark, r, c));
             let turn = !this.state.turnX;
-            this.calculateWinner(tempGrid);
-            this.setState({grid: tempGrid, turnX : turn});
+            this.calculateWinner(this.state.grid);
+            this.setState({grid: this.state.grid, turnX : turn});
          }       
     }
 
     calculateWinner(grid){
         var winFound = false;
         for(var r = 0; r < grid.length; r++){
-            if(grid[r][0] == 'X' && grid[r][1] == 'X' && grid[r][2] == 'X')
+            if(grid[r][0] === 'X' && grid[r][1] === 'X' && grid[r][2] === 'X')
                 winFound = true;
-            else if(grid[r][0] == 'O' && grid[r][1] == 'O' && grid[r][2] == 'O')
+            else if(grid[r][0] === 'O' && grid[r][1] === 'O' && grid[r][2] === 'O')
                 winFound = true;
-            if(grid[0][r] == 'X' && grid[1][r] == 'X' && grid[2][r] == 'X')
+            if(grid[0][r] === 'X' && grid[1][r] === 'X' && grid[2][r] === 'X')
                 winFound = true;
-            if(grid[0][r] == 'O' && grid[1][r] == 'O' && grid[2][r] == 'O')
+            if(grid[0][r] === 'O' && grid[1][r] === 'O' && grid[2][r] === 'O')
                 winFound = true;
         }
-        if(grid[0][0] == 'X' && grid[1][1] == 'X' && grid[2][2] == 'X')
+        if(grid[0][0] === 'X' && grid[1][1] === 'X' && grid[2][2] === 'X')
             winFound = true;
-        if(grid[0][0] == 'O' && grid[1][1] == 'O' && grid[2][2] == 'O')
+        if(grid[0][0] === 'O' && grid[1][1] === 'O' && grid[2][2] === 'O')
             winFound = true;
-        if(grid[0][2] == 'X' && grid[1][1] == 'X' && grid[2][0] == 'X')
+        if(grid[0][2] === 'X' && grid[1][1] === 'X' && grid[2][0] === 'X')
             winFound = true;
-        if(grid[0][2] == 'O' && grid[1][1] == 'O' && grid[2][0] == 'O')
+        if(grid[0][2] === 'O' && grid[1][1] === 'O' && grid[2][0] === 'O')
             winFound = true;
 
         if(winFound)
@@ -101,22 +100,56 @@ function Square(props){
             this.setState({status: 'Playing now: ' + (this.state.turnX ? 'O' : 'X')});
 
     }
+
+    recordMove = (player, r, c) =>{
+        return({player: player, r: r, c: c});
+    }
+    
+    undoMove(move){
+        //Case: the game is over therefore we need to resume the game!
+        var modGrid = this.state.grid;
+        var newHistory = this.state.history;
+        const numOfUndos = newHistory.findIndex((element) => element === move);
+        //Undo grid # of moves gone back on the grid!
+        for(var i = numOfUndos; i < newHistory.length; i++){
+            modGrid[newHistory[i].r][newHistory[i].c] = null;
+        }
+        //Remove the histories to correspond to the new board.
+        console.log(numOfUndos);
+        newHistory = newHistory.slice(0, numOfUndos);
+        var gameOver = this.state.gameOver;
+        if(gameOver)
+            gameOver = false;
+        this.setState({
+            gameOver: gameOver,
+            turnX: move.player === 'X' ? true : false,
+            grid: modGrid,
+            history: newHistory,
+            status: 'Playing now: ' + (this.state.turnX ? 'O' : 'X')
+        });
+    }
+
     render() {
       return (
         <div className="game">
           <div className="game-board">
-            <Board grid={this.state.grid} squareClick={this.squareClick.bind(this)} status={this.state.status} />
+            <Board grid={this.state.grid} squareClick={this.squareClick.bind(this)}/>
           </div>
           <div className="game-info">
-            <div>{/* status */}</div>
-            <ol>{/* TODO */}</ol>
+            <div>{this.state.status}</div>
+            <ol>
+                {this.state.history.map((move, index)=>{return <li key={index}><button onClick={this.undoMove.bind(this, move)}>Move by: {move.player} @ ({move.r},{move.c})</button></li>})}
+            </ol> 
           </div>
         </div>
       );
     }
   }
   
-  // ========================================
+
+ 
+
+  // ============================================================
   
   
 
